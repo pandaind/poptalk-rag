@@ -1,0 +1,64 @@
+server:
+  port: 8090
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/poptalk_rag}
+    username: ${DB_USERNAME:poptalk_rag}
+    password: ${DB_PASSWORD:poptalk_rag}
+  ai:
+    mcp:
+      server:
+        # Must be explicit — unlike most other Spring AI selector properties,
+        # this one defaults OFF (confirmed by booting: /mcp 404'd until this
+        # was set), not to STREAMABLE.
+        protocol: STREAMABLE
+        name: poptalk-rag
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: ${EMBEDDING_DIMENSIONS:768}
+    # poptalk-rag wires its own embedding-provider ChatModel/EmbeddingModel beans
+    # (see config/*EmbeddingConfig.java) the same way poptalk-backend wires its
+    # chat providers — disable Spring AI's own single-provider auto-selection.
+    # The openai starter also brings chat/image/audio/moderation autoconfigs
+    # that fail hard at startup without their own key even when unused
+    # (same bug class found and fixed in poptalk-backend) — disable all of them.
+    model:
+      embedding: none
+      chat: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      embedding:
+        options:
+          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      embedding:
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+
+app:
+  embedding:
+    # Which embedding provider to use: ollama (default, free/local) or openai.
+    provider: ${EMBEDDING_PROVIDER:ollama}
+  knowledge:
+    # Root directory scanned for per-persona knowledge sources:
+    # <dir>/<personaId>/*.{md,txt,pdf,docx,html}
+    dir: ${KNOWLEDGE_DIR:./knowledge}
+    poll-interval-ms: ${KNOWLEDGE_POLL_INTERVAL_MS:60000}
+  # personaId:apiKey,personaId2:apiKey2 — the ONLY source of tenant identity.
+  # A request's persona is derived from which key authenticated it, never
+  # from a client- or model-supplied field.
+  persona-api-keys: ${PERSONA_API_KEYS:}
+
+logging:
+  level:
+    in.pandac.rag: INFO
+    org.apache.camel: INFO

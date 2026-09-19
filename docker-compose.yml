@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: poptalk-rag-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-poptalk_rag}
+      POSTGRES_USER: ${DB_USERNAME:-poptalk_rag}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-poptalk_rag}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-poptalk_rag}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: poptalk-rag
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${HOST_PORT:-8090}:8090"
+    env_file:
+      - .env
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-poptalk_rag}
+      DB_USERNAME: ${DB_USERNAME:-poptalk_rag}
+      DB_PASSWORD: ${DB_PASSWORD:-poptalk_rag}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      PERSONA_API_KEYS: ${PERSONA_API_KEYS:-}
+      KNOWLEDGE_DIR: /app/knowledge
+      KNOWLEDGE_POLL_INTERVAL_MS: ${KNOWLEDGE_POLL_INTERVAL_MS:-60000}
+    volumes:
+      - ./knowledge:/app/knowledge
+
+volumes:
+  pgdata:
