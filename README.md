@@ -69,6 +69,8 @@ mcp-api-key=key1
 
 ```
 knowledge/
+├── _shared/
+│   └── company-overview.md
 ├── alice/
 │   ├── about.md
 │   └── faq.pdf
@@ -78,6 +80,11 @@ knowledge/
 
 Drop files in, and they're picked up on the next poll (`KNOWLEDGE_POLL_INTERVAL_MS`,
 default 60s) — or trigger an immediate pass:
+
+Documents under the reserved `_shared/` folder (name configurable via
+`SHARED_PERSONA_ID`) are retrievable by every persona, in addition to their
+own — see `knowledge/README.md` for details. Every other folder stays
+strictly scoped to its own persona's API key.
 
 ```bash
 curl -X POST http://localhost:8090/admin/reindex -H "Authorization: Bearer <any-valid-key>"

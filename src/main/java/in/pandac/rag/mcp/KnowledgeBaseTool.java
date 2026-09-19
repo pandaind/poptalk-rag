@@ -29,6 +29,11 @@ import java.util.stream.Collectors;
  * cases where the nearest vectors aren't actually the most useful passages.
  * If reranking is disabled or unavailable, the vector-similarity order is
  * used directly (equivalent to skipping this stage).
+ *
+ * <p>Every search also matches documents ingested under the reserved
+ * shared-persona-id folder ({@code knowledge/_shared/} by default,
+ * {@code app.rag.shared-persona-id}), so multiple personas can draw on a
+ * common set of documents without duplicating files per persona.
  */
 @Component
 public class KnowledgeBaseTool {
@@ -46,6 +51,9 @@ public class KnowledgeBaseTool {
 
     @Value("${app.rerank.max-candidate-pool:20}")
     private int maxCandidatePool;
+
+    @Value("${app.rag.shared-persona-id:_shared}")
+    private String sharedPersonaId;
 
     public KnowledgeBaseTool(VectorStore vectorStore, LlmReranker reranker) {
         this.vectorStore = vectorStore;
@@ -74,11 +82,17 @@ public class KnowledgeBaseTool {
         // multiplier/cap are configured.
         candidatePoolSize = Math.max(candidatePoolSize, effectiveTopK);
 
+        // Every persona also sees documents ingested under the reserved
+        // shared-persona-id folder (knowledge/_shared/ by default) — a way
+        // to give multiple personas access to common documents without
+        // duplicating files or widening tenant isolation to "no filter".
+        String filterExpression = "(persona_id == '" + personaId + "' OR persona_id == '" + sharedPersonaId + "')";
+
         SearchRequest request = SearchRequest.builder()
                 .query(query)
                 .topK(candidatePoolSize)
                 .similarityThreshold(similarityThreshold)
-                .filterExpression("persona_id == '" + personaId + "'")
+                .filterExpression(filterExpression)
                 .build();
 
         List<Document> candidates = vectorStore.similaritySearch(request);

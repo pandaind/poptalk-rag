@@ -60,6 +60,10 @@ app:
     # out to topK rather than being excluded. Needs tuning per embedding
     # model; 0.5 is a reasonable starting point, not a universal constant.
     similarity-threshold: ${SIMILARITY_THRESHOLD:0.5}
+    # Reserved persona id whose documents (knowledge/<this>/) every persona
+    # can retrieve, in addition to their own — a way to share common
+    # documents across personas without duplicating files.
+    shared-persona-id: ${SHARED_PERSONA_ID:_shared}
   rerank:
     # Re-scores the vector search's candidates with a chat model before
     # returning the requested topK — cosine similarity alone is a fairly
