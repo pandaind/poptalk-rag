@@ -1,14 +1,15 @@
 package in.pandac.rag.search;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.util.JacksonUtils;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -35,7 +36,7 @@ public class HybridSearchService {
 
     private final VectorStore vectorStore;
     private final JdbcTemplate jdbcTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper jsonMapper = JacksonUtils.getDefaultJsonMapper();
 
     @Value("${app.search.hybrid.enabled:true}")
     private boolean hybridEnabled;
@@ -90,7 +91,7 @@ public class HybridSearchService {
     private Document toDocument(String id, String content, String metadataJson) {
         Map<String, Object> metadata;
         try {
-            metadata = metadataJson == null ? Map.of() : objectMapper.readValue(metadataJson, Map.class);
+            metadata = metadataJson == null ? Map.of() : jsonMapper.readValue(metadataJson, Map.class);
         } catch (Exception e) {
             metadata = Map.of();
         }

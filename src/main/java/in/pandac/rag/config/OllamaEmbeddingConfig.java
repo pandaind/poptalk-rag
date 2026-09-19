@@ -21,7 +21,7 @@ public class OllamaEmbeddingConfig {
     @Value("${spring.ai.ollama.base-url:http://localhost:11434}")
     private String baseUrl;
 
-    @Value("${spring.ai.ollama.embedding.options.model:nomic-embed-text}")
+    @Value("${spring.ai.ollama.embedding.model:nomic-embed-text}")
     private String modelName;
 
     @Bean
@@ -33,7 +33,7 @@ public class OllamaEmbeddingConfig {
     public OllamaEmbeddingModel embeddingModel(OllamaApi ollamaEmbeddingApi) {
         return OllamaEmbeddingModel.builder()
                 .ollamaApi(ollamaEmbeddingApi)
-                .defaultOptions(OllamaEmbeddingOptions.builder()
+                .options(OllamaEmbeddingOptions.builder()
                         .model(modelName)
                         .build())
                 .build();

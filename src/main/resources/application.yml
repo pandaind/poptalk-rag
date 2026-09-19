@@ -35,20 +35,16 @@ spring:
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
-        options:
-          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
+        model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
       chat:
-        options:
-          model: ${RERANK_MODEL:llama3.2}
+        model: ${RERANK_MODEL:llama3.2}
     openai:
       api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       embedding:
-        options:
-          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+        model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
       chat:
-        options:
-          model: ${RERANK_MODEL:gpt-4o-mini}
+        model: ${RERANK_MODEL:gpt-4o-mini}
 
 app:
   embedding:
