@@ -82,6 +82,13 @@ Editing a file re-hashes and re-embeds it normally; a file edited to *become*
 a duplicate of another has its own stale vectors cleaned up rather than left
 behind.
 
+Re-ingesting an edited file is also failure-safe: `EmbeddingUpsertProcessor`
+tags each ingestion attempt with a fresh `batch_id`, adds the new chunks
+first, and only deletes the file's previous batch once that add has actually
+succeeded — so if the embedding provider goes down mid-request, the file's
+existing (still-good) search results stay intact instead of being deleted
+before a replacement could be written.
+
 ## Multi-tenancy and auth
 
 Each PopTalk persona gets its **own API key**. That key is the *only* source
@@ -206,15 +213,6 @@ harness — a heavier future addition, not part of this one) and automatic
 conflicting-data resolution (deliberately left to the calling LLM, given
 `ingested_at`/`effective_date` metadata in citation headers, rather than
 built as an automatic mechanism here).
-
-## Known limitation
-
-If a knowledge file is edited at the exact moment the embedding provider is
-unreachable, its old (still-good) chunks are removed before the new ones can
-be created, leaving that one file's search results empty until a later poll
-succeeds. See the comment on `EmbeddingUpsertProcessor` for why, and what a
-proper fix would need (a batch/version column, so the delete step doesn't
-also catch the rows it just inserted).
 
 ## License
 

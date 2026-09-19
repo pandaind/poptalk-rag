@@ -8,28 +8,24 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * Replaces (not appends) a file's vectors: on every (re-)ingest, first delete
- * whatever chunks already exist for this exact persona+source, then add the
- * freshly-chunked-and-about-to-be-embedded set. This is what makes editing a
- * knowledge file behave correctly — without the delete, a changed file would
- * leave its old, now-stale chunks in the store alongside the new ones.
+ * Replaces (not appends) a file's vectors: adds the freshly-chunked set
+ * FIRST, tagged with a fresh {@code batch_id}, and only deletes the file's
+ * previous chunks (any other {@code batch_id} for this persona+source) once
+ * that add has actually succeeded.
  *
- * <p><b>Known trade-off</b> (found by actually exercising this against a
- * failing embedding provider): {@code delete()} runs before the embedding
- * call inside {@code add()}. If a file is updated right as the embedding
- * provider goes down, the old-but-still-good chunks are removed before the
- * new ones can be created, leaving that one file's search results empty
- * until a later poll succeeds — not a total outage, just that file, and only
- * for the provider's downtime window. Fixing this properly means embedding
- * the new chunks into a holding batch first and only deleting the old ones
- * once the new batch is confirmed written, which needs a batch/version
- * column to keep the delete from also catching the rows it just inserted.
- * Left as a documented limitation rather than added now — this only bites
- * a file that's both being edited and unlucky enough to catch the provider
- * mid-outage.
+ * <p>This ordering — add-then-delete-old-batch rather than delete-then-add —
+ * is deliberate: {@code add()} is what can fail partway through (e.g. the
+ * embedding provider going down mid-request), and doing the delete first
+ * used to mean such a failure left that file's search results empty until a
+ * later poll succeeded. Tagging each batch and deleting only stale batches
+ * means a failed add leaves the previous, still-good batch untouched instead.
  */
 @Component("embeddingUpsertProcessor")
 public class EmbeddingUpsertProcessor implements Processor {
@@ -49,14 +45,33 @@ public class EmbeddingUpsertProcessor implements Processor {
         String personaId = exchange.getProperty("personaId", String.class);
         String relativePath = exchange.getIn().getHeader(FileConstants.FILE_RELATIVE_PATH, String.class);
         String contentHash = exchange.getProperty("contentHash", String.class);
-
-        FilterExpressionBuilder b = new FilterExpressionBuilder();
-        vectorStore.delete(b.and(b.eq("persona_id", personaId), b.eq("source", relativePath)).build());
+        String batchId = UUID.randomUUID().toString();
 
         if (!chunks.isEmpty()) {
-            vectorStore.add(chunks);
+            // If this throws (embedding provider unreachable, etc.), execution
+            // stops here — the previous batch below is never deleted, so this
+            // file's existing search results survive the failure.
+            vectorStore.add(tagWithBatch(chunks, batchId));
         }
 
+        FilterExpressionBuilder b = new FilterExpressionBuilder();
+        vectorStore.delete(b.and(
+                b.and(b.eq("persona_id", personaId), b.eq("source", relativePath)),
+                b.ne("batch_id", batchId)).build());
+
         tracker.markIngested(personaId, relativePath, contentHash);
+    }
+
+    private static List<Document> tagWithBatch(List<Document> chunks, String batchId) {
+        List<Document> tagged = new ArrayList<>(chunks.size());
+        for (Document chunk : chunks) {
+            Map<String, Object> metadata = new HashMap<>(chunk.getMetadata());
+            metadata.put("batch_id", batchId);
+            tagged.add(Document.builder()
+                    .text(chunk.getText())
+                    .metadata(metadata)
+                    .build());
+        }
+        return tagged;
     }
 }
