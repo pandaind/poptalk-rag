@@ -13,12 +13,36 @@ logic itself.
   `search_knowledge_base`, that PopTalk's chat model can call mid-conversation.
 - **Vector store**: PostgreSQL + [pgvector](https://github.com/pgvector/pgvector).
 - **Embeddings**: Ollama (local, free, default) or OpenAI — configurable.
+- **Ranking**: cosine-similarity vector search + LLM reranking of the
+  candidate pool — see [Ranking](#ranking) below.
 - **Ingestion**: an Apache Camel pipeline watches `knowledge/<personaId>/`,
   parses whatever it finds (PDF/DOCX/HTML/TXT/MD, via Apache Tika), chunks it,
   embeds each chunk, and upserts it into pgvector — automatically, on a poll
   interval, with a Postgres-persisted idempotent repository so unchanged
   files are never needlessly re-embedded. Deleted files are detected
   separately and their vectors removed.
+
+## Ranking
+
+Retrieval is two-stage, not plain top-K by cosine similarity alone:
+
+1. **Vector search** — pgvector's HNSW index, ranked by cosine similarity
+   (`vector_cosine_ops`). This first stage fetches a *wider* candidate pool
+   than the requested `topK` (`RERANK_CANDIDATE_POOL_MULTIPLIER`, capped by
+   `RERANK_MAX_CANDIDATE_POOL`), and drops anything below
+   `SIMILARITY_THRESHOLD` — without a threshold, low-relevance chunks would
+   pad out to `topK` instead of being excluded when there just isn't `topK`
+   worth of good matches.
+2. **LLM reranking** — the candidate pool is re-scored by a chat model
+   (`RERANK_PROVIDER`/`RERANK_MODEL`), which returns only the actual `topK`
+   in relevance order. Cosine similarity alone is a fairly blunt signal —
+   the nearest vectors aren't always the most useful passages — so this
+   catches what the embedding-only pass misses.
+
+Reranking is a quality improvement, not a hard dependency: if it's disabled
+(`RERANK_ENABLED=false`), unconfigured, or the rerank call fails for any
+reason, `search_knowledge_base` falls back to the vector-similarity order
+directly. See `LlmReranker` and `KnowledgeBaseTool`.
 
 ## Multi-tenancy and auth
 
