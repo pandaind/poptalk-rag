@@ -1,24 +1,8 @@
 # Knowledge directory
 
-Drop files here under `<personaId>/`, matching the persona ids configured in
-PopTalk (`backend/data/personas/<personaId>/` there). Supported formats:
-`.md`, `.txt`, `.pdf`, `.docx`, `.html`, `.htm`.
-
-Example:
-
-```
-knowledge/
-└── alice/
-    ├── about.md
-    └── faq.pdf
-```
-
-## Sharing knowledge across personas
-
-Files under the reserved `_shared/` folder (configurable via
-`SHARED_PERSONA_ID`) are retrievable by *every* persona, in addition to their
-own documents — useful for content that isn't specific to any one persona
-(company-wide policies, a shared product catalog, etc.):
+Drop documents here under `<personaId>/`, matching the persona ids PopTalk
+uses (`data/personas/<personaId>/` there). PDF, DOCX, HTML, TXT, and
+Markdown are all supported.
 
 ```
 knowledge/
@@ -30,29 +14,23 @@ knowledge/
     └── product-docs.html
 ```
 
-No per-persona API key grants access to another *persona's* folder — only
-to `_shared/`, which every key implicitly includes.
+Anything under `_shared/` is visible to every persona in addition to their
+own documents — handy for things that aren't specific to any one persona,
+like a company overview or a shared FAQ. Every other folder stays private to
+its own persona's API key.
 
-## Markdown structure and metadata
-
-Markdown files can start with an optional YAML frontmatter block, and their
-headings are automatically tracked so search results can cite the section
-they came from:
+Markdown files can optionally start with a YAML frontmatter block for your
+own metadata, and their headings are picked up automatically so search
+results can point back to the right section:
 
 ```markdown
 ---
 department: sales
-effective_date: 2026-01-01
-tags: [pricing, contracts]
 ---
 
 # Enterprise pricing
-
 ## Included seats
 ...
 ```
 
-Two files with identical content (even under different names) are only
-embedded once — see the root README's "Duplicate and stale content" section.
-
-See the root [README](../README.md) for how ingestion and auth work.
+See the [root README](../README.md) for how ingestion and auth actually work.
