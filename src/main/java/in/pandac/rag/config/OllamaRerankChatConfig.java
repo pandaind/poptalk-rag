@@ -24,7 +24,7 @@ public class OllamaRerankChatConfig {
     @Value("${spring.ai.ollama.base-url:http://localhost:11434}")
     private String baseUrl;
 
-    @Value("${spring.ai.ollama.chat.options.model:llama3.2}")
+    @Value("${spring.ai.ollama.chat.model:llama3.2}")
     private String modelName;
 
     @Bean
@@ -36,7 +36,7 @@ public class OllamaRerankChatConfig {
     public OllamaChatModel rerankChatModel(OllamaApi rerankOllamaApi) {
         return OllamaChatModel.builder()
                 .ollamaApi(rerankOllamaApi)
-                .defaultOptions(OllamaChatOptions.builder()
+                .options(OllamaChatOptions.builder()
                         .model(modelName)
                         .temperature(0.0)
                         .build())
