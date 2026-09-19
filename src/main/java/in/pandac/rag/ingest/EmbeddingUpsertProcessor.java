@@ -48,6 +48,7 @@ public class EmbeddingUpsertProcessor implements Processor {
         List<Document> chunks = exchange.getIn().getBody(List.class);
         String personaId = exchange.getProperty("personaId", String.class);
         String relativePath = exchange.getIn().getHeader(FileConstants.FILE_RELATIVE_PATH, String.class);
+        String contentHash = exchange.getProperty("contentHash", String.class);
 
         FilterExpressionBuilder b = new FilterExpressionBuilder();
         vectorStore.delete(b.and(b.eq("persona_id", personaId), b.eq("source", relativePath)).build());
@@ -56,6 +57,6 @@ public class EmbeddingUpsertProcessor implements Processor {
             vectorStore.add(chunks);
         }
 
-        tracker.markIngested(personaId, relativePath);
+        tracker.markIngested(personaId, relativePath, contentHash);
     }
 }

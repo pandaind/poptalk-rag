@@ -33,4 +33,26 @@ knowledge/
 No per-persona API key grants access to another *persona's* folder — only
 to `_shared/`, which every key implicitly includes.
 
+## Markdown structure and metadata
+
+Markdown files can start with an optional YAML frontmatter block, and their
+headings are automatically tracked so search results can cite the section
+they came from:
+
+```markdown
+---
+department: sales
+effective_date: 2026-01-01
+tags: [pricing, contracts]
+---
+
+# Enterprise pricing
+
+## Included seats
+...
+```
+
+Two files with identical content (even under different names) are only
+embedded once — see the root README's "Duplicate and stale content" section.
+
 See the root [README](../README.md) for how ingestion and auth work.

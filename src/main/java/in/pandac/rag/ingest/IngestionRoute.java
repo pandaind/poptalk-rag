@@ -46,6 +46,7 @@ public class IngestionRoute extends RouteBuilder {
                 .routeId("knowledge-ingestion")
                 .process("personaPathResolver")
                 .process("documentParsingProcessor")
+                .process("duplicateDocumentGuard")
                 .process("chunkingProcessor")
                 .process("embeddingUpsertProcessor")
                 .log("Ingested ${exchangeProperty.personaId}/${header.CamelFileRelativePath} "

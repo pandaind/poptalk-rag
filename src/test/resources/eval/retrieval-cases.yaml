@@ -1,0 +1,15 @@
+# Fixtures for RetrievalRegressionTest. Each case asks a question against a
+# seeded persona's knowledge base and asserts that at least one of the
+# expected sources appears somewhere in search_knowledge_base's output.
+- personaId: alice
+  query: "how much does the enterprise plan cost"
+  expectedSourceContains: ["alice/pricing.md"]
+- personaId: alice
+  query: "return policy window"
+  expectedSourceContains: ["alice/returns.md"]
+- personaId: acme-support
+  query: "warranty length for hardware"
+  expectedSourceContains: ["acme-support/warranty.md"]
+- personaId: acme-support
+  query: "when was the company founded"
+  expectedSourceContains: ["_shared/company.md"]

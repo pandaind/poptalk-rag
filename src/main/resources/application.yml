@@ -64,6 +64,25 @@ app:
     # can retrieve, in addition to their own — a way to share common
     # documents across personas without duplicating files.
     shared-persona-id: ${SHARED_PERSONA_ID:_shared}
+    # Hard cap on the total characters search_knowledge_base returns,
+    # regardless of how topK is configured — keeps a misconfigured client
+    # from blowing the calling model's context budget.
+    max-context-chars: ${MAX_CONTEXT_CHARS:6000}
+  chunking:
+    # TokenTextSplitter's own defaults, made explicit and configurable.
+    chunk-size: ${CHUNK_SIZE:800}
+    min-chunk-size-chars: ${MIN_CHUNK_SIZE_CHARS:350}
+    # TokenTextSplitter has no overlap of its own — this many trailing
+    # characters of a chunk are prepended to the next one, to reduce context
+    # loss at chunk boundaries.
+    overlap-chars: ${CHUNK_OVERLAP_CHARS:100}
+  search:
+    hybrid:
+      # Adds a Postgres full-text-search leg alongside vector similarity,
+      # merged via Reciprocal Rank Fusion — catches exact-term queries a
+      # pure embedding search can miss. Escape hatch back to vector-only if
+      # the FTS column/index ever misbehaves.
+      enabled: ${HYBRID_SEARCH_ENABLED:true}
   rerank:
     # Re-scores the vector search's candidates with a chat model before
     # returning the requested topK — cosine similarity alone is a fairly
