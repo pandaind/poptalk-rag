@@ -37,6 +37,27 @@ Give each persona its own key in `PERSONA_API_KEYS` here, and the matching
 [`knowledge/README.md`](knowledge/README.md) for how to organize what goes
 in the folder itself.
 
+## Pulling from a static site
+
+If your content lives on a static site, you don't need to copy files to this server. A site
+generator can publish its pages as one versioned `knowledge.json`, and this server pulls it on a
+schedule. [Meteorite](https://github.com/pandaind/meteorite) does this with
+`chat.knowledge.publish: true`.
+
+```env
+KNOWLEDGE_SITE_SOURCES=acme-support=https://example.com/knowledge.json
+KNOWLEDGE_SITE_POLL_MS=600000      # default: every 10 minutes
+```
+
+Each document is written to `knowledge/<personaId>/<path>.md` with front matter (including the
+page's public `url`), and the normal ingestion takes over, so chunking, embedding, change
+detection and deletion behave exactly as for hand-placed files.
+
+It is safe to leave running: a failed request, a non-JSON or oversized response, an unknown
+manifest version, unsafe file paths or an empty document list change nothing on disk, so an
+outage of the site can never wipe a knowledge base. Unchanged sites cost one conditional
+request (`ETag`). Files you placed in the same folder are never overwritten or removed.
+
 ## Running it
 
 ```bash

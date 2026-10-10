@@ -97,6 +97,12 @@ app:
     # <dir>/<personaId>/*.{md,txt,pdf,docx,html}
     dir: ${KNOWLEDGE_DIR:./knowledge}
     poll-interval-ms: ${KNOWLEDGE_POLL_INTERVAL_MS:60000}
+    # Optional: pull a static site's published knowledge file (Meteorite's `knowledge.json`)
+    # into <dir>/<personaId>/ on a schedule. Format: personaId=https://host/knowledge.json,...
+    # Left empty, nothing is fetched.
+    site-sources: ${KNOWLEDGE_SITE_SOURCES:}
+    site-poll-interval-ms: ${KNOWLEDGE_SITE_POLL_MS:600000}
+    site-max-bytes: ${KNOWLEDGE_SITE_MAX_BYTES:26214400}
   # personaId:apiKey,personaId2:apiKey2 — the ONLY source of tenant identity.
   # A request's persona is derived from which key authenticated it, never
   # from a client- or model-supplied field.
