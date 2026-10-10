@@ -33,4 +33,12 @@ department: sales
 ...
 ```
 
+If a Markdown file's front matter has a `url:` (an `http(s)` address), search results cite it
+as `[source — heading] <url>`, so the model can point visitors at a real page instead of a file
+path. Static-site generators that export their pages here, such as
+[Meteorite](https://github.com/pandaind/meteorite) (`chat.knowledge.dir`), set it for you.
+
+Lines starting with `#` inside fenced code blocks (``` or ~~~) are code, not headings, and do not
+affect the heading path shown in citations.
+
 See the [root README](../README.md) for how ingestion and auth actually work.

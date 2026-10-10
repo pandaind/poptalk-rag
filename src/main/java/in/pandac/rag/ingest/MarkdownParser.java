@@ -20,6 +20,7 @@ public final class MarkdownParser {
 
     private static final Pattern FRONTMATTER = Pattern.compile("\\A---\\r?\\n(.*?\\r?\\n)---\\r?\\n?", Pattern.DOTALL);
     private static final Pattern HEADING = Pattern.compile("(?m)^(#{1,6})\\s+(.+?)\\s*$");
+    private static final Pattern FENCE = Pattern.compile("(?m)^[ \\t]{0,3}(`{3,}|~{3,})");
 
     private MarkdownParser() {
     }
@@ -69,17 +70,57 @@ public final class MarkdownParser {
         return Map.of();
     }
 
+    /**
+     * Offsets {@code [start, end)} of fenced code blocks. A {@code # comment} line inside one is
+     * code, not a heading, and must not become part of the heading path. An unclosed fence runs to
+     * the end of the text, as in CommonMark.
+     */
+    private static List<int[]> fencedRanges(String body) {
+        List<int[]> ranges = new ArrayList<>();
+        Matcher m = FENCE.matcher(body);
+        int openAt = -1;
+        char openChar = 0;
+        int openLen = 0;
+        while (m.find()) {
+            String marker = m.group(1);
+            if (openAt < 0) {
+                openAt = m.start();
+                openChar = marker.charAt(0);
+                openLen = marker.length();
+            } else if (marker.charAt(0) == openChar && marker.length() >= openLen) {
+                ranges.add(new int[] {openAt, m.end()});
+                openAt = -1;
+            }
+        }
+        if (openAt >= 0) {
+            ranges.add(new int[] {openAt, body.length()});
+        }
+        return ranges;
+    }
+
+    private static boolean insideAny(List<int[]> ranges, int offset) {
+        for (int[] r : ranges) {
+            if (offset >= r[0] && offset < r[1]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static List<HeadingBreak> extractHeadings(String body) {
         List<HeadingBreak> headings = new ArrayList<>();
+        List<int[]> fences = fencedRanges(body);
         String[] pathByLevel = new String[7];
         Matcher m = HEADING.matcher(body);
         while (m.find()) {
+            if (insideAny(fences, m.start())) {
+                continue;
+            }
             int level = m.group(1).length();
             pathByLevel[level] = m.group(2).trim();
             for (int i = level + 1; i < pathByLevel.length; i++) {
                 pathByLevel[i] = null;
             }
-
             StringBuilder path = new StringBuilder();
             for (int i = 1; i <= level; i++) {
                 if (pathByLevel[i] != null) {

@@ -122,6 +122,7 @@ public class KnowledgeBaseTool {
             String source = asString(metadata.get("source"));
             Integer chunkIndex = asInteger(metadata.get("chunk_index"));
             String headingPath = asString(metadata.get("heading_path"));
+            String url = asString(metadata.get("url"));
 
             boolean continuesPrevious = lastSource != null && lastSource.equals(source)
                     && lastChunkIndex != null && chunkIndex != null && chunkIndex == lastChunkIndex + 1;
@@ -132,7 +133,7 @@ public class KnowledgeBaseTool {
                 if (!out.isEmpty()) {
                     out.append("\n---\n");
                 }
-                out.append(citationHeader(source, headingPath)).append("\n").append(doc.getText());
+                out.append(citationHeader(source, headingPath, url)).append("\n").append(doc.getText());
             }
 
             lastSource = source;
@@ -146,11 +147,20 @@ public class KnowledgeBaseTool {
         return out.toString();
     }
 
-    private static String citationHeader(String source, String headingPath) {
+    /**
+     * {@code [source — heading path]}, followed by {@code <url>} when the document's front matter
+     * supplied a public {@code url} (a site exporting its pages, such as Meteorite, does). The model
+     * can then cite a link a visitor can actually open instead of a file path.
+     */
+    private static String citationHeader(String source, String headingPath, String url) {
         if (source == null) {
             return "[unknown source]";
         }
-        return headingPath != null ? "[" + source + " — " + headingPath + "]" : "[" + source + "]";
+        String header = headingPath != null ? "[" + source + " — " + headingPath + "]" : "[" + source + "]";
+        if (url != null && (url.startsWith("https://") || url.startsWith("http://"))) {
+            header += " <" + url + ">";
+        }
+        return header;
     }
 
     private static String asString(Object value) {

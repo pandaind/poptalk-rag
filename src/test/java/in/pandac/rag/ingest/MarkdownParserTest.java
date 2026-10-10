@@ -72,6 +72,42 @@ class MarkdownParserTest {
     }
 
     @Test
+    void hashLinesInsideFencedCodeBlocksAreNotHeadings() {
+        String body = """
+                # Install
+
+                ```sh
+                # download the binary
+                curl -O https://example.com/tool
+                ## not a heading either
+                ```
+
+                ## Usage
+                text
+
+                ~~~
+                # also code
+                ~~~
+
+                ### Options
+                """;
+
+        MarkdownParser.ParseResult result = MarkdownParser.parse(body);
+
+        assertThat(result.headings()).extracting(MarkdownParser.HeadingBreak::path)
+                .containsExactly("Install", "Install > Usage", "Install > Usage > Options");
+    }
+
+    @Test
+    void anUnclosedFenceHidesEverythingAfterItAsCommonMarkDoes() {
+        String body = "# Title\n\n```\n# inside\n## still inside\n";
+
+        assertThat(MarkdownParser.parse(body).headings())
+                .extracting(MarkdownParser.HeadingBreak::path)
+                .containsExactly("Title");
+    }
+
+    @Test
     void headingPathAtReturnsTheNearestPrecedingHeading() {
         List<MarkdownParser.HeadingBreak> headings = List.of(
                 new MarkdownParser.HeadingBreak(0, "Pricing"),

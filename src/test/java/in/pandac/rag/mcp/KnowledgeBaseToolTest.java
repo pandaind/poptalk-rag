@@ -68,6 +68,25 @@ class KnowledgeBaseToolTest {
     }
 
     @Test
+    void addsThePublicUrlToTheCitationWhenTheDocumentHasOne() {
+        Document withUrl = chunk("guide/start.md", 0, "Start > Install", "Run the installer.");
+        withUrl.getMetadata().put("url", "https://example.com/guide/start/");
+        Document unsafe = chunk("guide/other.md", 0, null, "Other text.");
+        unsafe.getMetadata().put("url", "javascript:alert(1)");
+        when(hybridSearchService.search(any(), any(), any(), anyInt(), anyDouble()))
+                .thenReturn(List.of(withUrl, unsafe));
+        when(reranker.rerank(any(), any(), anyInt()))
+                .thenReturn(new LlmReranker.RerankOutcome(List.of(withUrl, unsafe), true));
+
+        String result = tool.search("install", 2);
+
+        assertThat(result).contains("[guide/start.md — Start > Install] <https://example.com/guide/start/>")
+                // Only http(s) URLs are passed on to the model.
+                .contains("[guide/other.md]\nOther text.")
+                .doesNotContain("javascript:");
+    }
+
+    @Test
     void prefixesACaveatWhenTheRerankerJudgesTheCandidatesInsufficient() {
         Document a = chunk("alice/faq.md", 0, null, "Loosely related text.");
         when(hybridSearchService.search(any(), any(), any(), anyInt(), anyDouble())).thenReturn(List.of(a));
