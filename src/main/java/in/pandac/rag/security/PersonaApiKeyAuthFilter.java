@@ -33,21 +33,31 @@ public class PersonaApiKeyAuthFilter extends OncePerRequestFilter {
     private final Map<String, String> personaByApiKey = new HashMap<>();
 
     public PersonaApiKeyAuthFilter(@Value("${app.persona-api-keys:}") String personaApiKeys) {
+        int position = 0;
         for (String entry : personaApiKeys.split(",")) {
             String trimmed = entry.trim();
             if (trimmed.isEmpty()) {
                 continue;
             }
+            position++;
             int sep = trimmed.indexOf(':');
             if (sep <= 0 || sep == trimmed.length() - 1) {
-                log.warn("Ignoring malformed PERSONA_API_KEYS entry (expected personaId:key): '{}'", trimmed);
+                // Never log the entry itself: its value is a secret.
+                log.warn("Ignoring PERSONA_API_KEYS entry #{}: it must look like personaId:key (a colon, "
+                        + "not '=').", position);
                 continue;
             }
             String personaId = trimmed.substring(0, sep);
             String apiKey = trimmed.substring(sep + 1);
             personaByApiKey.put(apiKey, personaId);
         }
-        log.info("Loaded API keys for {} persona(s): {}", personaByApiKey.size(), personaByApiKey.values());
+        if (personaByApiKey.isEmpty()) {
+            log.error("No persona API keys are configured, so every /mcp and /admin request will be "
+                    + "rejected. Set PERSONA_API_KEYS to personaId:key (comma separated for several "
+                    + "personas), for example alice:3f9c...");
+        } else {
+            log.info("Loaded API keys for {} persona(s): {}", personaByApiKey.size(), personaByApiKey.values());
+        }
     }
 
     private boolean requiresAuth(String path) {

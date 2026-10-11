@@ -3,7 +3,12 @@ package in.pandac.rag.security;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -68,5 +73,44 @@ class PersonaApiKeyAuthFilterTest {
 
         verify(chain).doFilter(request, response);
         verify(response, never()).setStatus(anyInt());
+    }
+
+    private static java.util.List<ILoggingEvent> logsFrom(Runnable action) {
+        Logger logger = (Logger) LoggerFactory.getLogger(PersonaApiKeyAuthFilter.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            action.run();
+        } finally {
+            logger.detachAppender(appender);
+        }
+        return appender.list;
+    }
+
+    @Test
+    void anEntryWithAnEqualsSignIsIgnoredWithoutLoggingItsSecret() {
+        var events = logsFrom(() -> new PersonaApiKeyAuthFilter("alice=super-secret-key-123"));
+
+        assertThat(events).anyMatch(e -> e.getLevel() == Level.WARN
+                && e.getFormattedMessage().contains("personaId:key"));
+        assertThat(events).noneMatch(e -> e.getFormattedMessage().contains("super-secret-key-123"));
+    }
+
+    @Test
+    void noUsableKeysIsALoudError() {
+        for (String value : new String[] {"", "alice=oops", ",,"}) {
+            var events = logsFrom(() -> new PersonaApiKeyAuthFilter(value));
+            assertThat(events).as("value %s", value)
+                    .anyMatch(e -> e.getLevel() == Level.ERROR
+                            && e.getFormattedMessage().contains("PERSONA_API_KEYS"));
+        }
+    }
+
+    @Test
+    void validKeysDoNotRaiseAnError() {
+        var events = logsFrom(() -> new PersonaApiKeyAuthFilter("alice:k1"));
+
+        assertThat(events).noneMatch(e -> e.getLevel().isGreaterOrEqual(Level.WARN));
     }
 }
